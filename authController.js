@@ -23,9 +23,7 @@ const createSendToken = (user, statusCode, res) => {
     httpOnly: true
   };
   if (process.env.NODE_ENV === 'production') cookieOptions.secure = true;
-
   res.cookie('jwt', token, cookieOptions);
-
   // Remove password from output
   user.password = undefined;
 
@@ -39,7 +37,6 @@ const createSendToken = (user, statusCode, res) => {
 };
 
 
-
 exports.signupUser = catchAsync(async (req, res, next) => {
   // Check if the user is trying to set an invalid role
   if (req.body.role) {
@@ -51,11 +48,50 @@ exports.signupUser = catchAsync(async (req, res, next) => {
       });
     }
   }
-
   const newUser = await User.create(req.body);
 
   // Respond with a success message and user data
   createSendToken(newUser, 201, res);
+});
+
+
+exports.registerAdminSelf = catchAsync(async (req, res, next) => {
+  // You can use req.user to access the authenticated admin user
+  const adminUser = req.body;
+
+  // Check if the user already has an 'admin' role
+  if (adminUser.role !== 'admin') {
+    return next(new AppError('Only admin role it is allow', 400));
+  }
+
+  // Save the updated user with the 'admin' role
+  const adminResult = await User.create( req.body);
+
+  adminResult.password = undefined;
+
+  res.status(200).json({
+    status: 'success',
+    message: 'Admin role added to the user.',
+    data: adminResult
+  });
+});
+
+
+
+exports.registerTeamMember = catchAsync(async (req, res, next) => {
+
+  if (req.body.role !== 'teammember') {
+    return next(new AppError('Only teammember role it is allow', 400));
+  }
+
+  const newUser = await User.create(req.body);
+
+  // Respond with a success message and user data
+  res.status(200).json({
+    status: 'success',
+    message: 'Sucessfull added the user.',
+    data: newUser
+  });
 });
 
 
@@ -82,7 +118,39 @@ exports.logout = (req, res) => {
   res.status(200).json({ status: 'success' });
 };
 
-  
+ // START HERE 
+
+
+
+// Create a new route to verify token expiration
+exports.verifyTokenExpiration = (req, res, next) => {
+  // Get the JWT token from the request (e.g., stored in a cookie)
+  const token = req.cookies.jwt;
+
+  // Check if the token is missing
+  if (!token) {
+    return next(new AppError('Token is missing. Please log in to get a token.', 401));
+  }
+
+  // Verify the token and handle errors using a try-catch block
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    // If the token is valid, send a success message
+    res.status(200).json({
+      status: 'success',
+      message: 'Token is valid and has not expired yet .',
+    });
+  } catch (err) {
+    // If jwt.verify throws an error, it means the token has expired
+    return next(new AppError('Token has expired. Please log in again.', 401));
+  }
+};
+
+
+// ENDED HERE 
+
+
 exports.restrictTo = (...roles) => {
   return (req, res, next) => {
     // roles ['admin', 'lead-guide']. role='user'
