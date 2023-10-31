@@ -37,7 +37,72 @@ const createSendToken = (user, statusCode, res) => {
 };
 
 
+// exports.signupUser = catchAsync(async (req, res, next) => {
+//   // Check if the user is trying to set an invalid role
+//   if (req.body.role) {
+//     const invalidRoles = ['admin', 'teammember']; // Define invalid roles
+//     if (invalidRoles.includes(req.body.role.toLowerCase())) {
+//       return res.status(400).json({
+//         status: 'fail',
+//         message: 'Invalid user role for self-registration.',
+//       });
+//     }
+//   }
+//   const newUser = await User.create(req.body);
+
+//   // Respond with a success message and user data
+//   createSendToken(newUser, 201, res);
+// });
+
+
+
 exports.signupUser = catchAsync(async (req, res, next) => {
+  // Validate the request body to ensure it includes all required fields
+  const {
+    name,
+    surname,
+    password,
+    passwordConfirm,
+    email,
+    photo,
+    gender,
+    phoneNumber,
+    idNumber,
+    area,
+    town,
+    country,
+    image,
+    address,
+    contact,
+    maritalStatus,
+    familyName,
+  } = req.body;
+
+  if (
+    !name ||
+    !surname ||
+    !password ||
+    !passwordConfirm ||
+    !email ||
+    !photo ||
+    !gender ||
+    !phoneNumber ||
+    !idNumber ||
+    !area ||
+    !town ||
+    !country ||
+    !image ||
+    !address ||
+    !contact ||
+    !maritalStatus ||
+    !familyName
+  ) {
+    return res.status(400).json({
+      status: 'fail',
+      message: 'All required fields must be provided.',
+    });
+  }
+
   // Check if the user is trying to set an invalid role
   if (req.body.role) {
     const invalidRoles = ['admin', 'teammember']; // Define invalid roles
@@ -48,6 +113,8 @@ exports.signupUser = catchAsync(async (req, res, next) => {
       });
     }
   }
+
+  // Create the user in the database
   const newUser = await User.create(req.body);
 
   // Respond with a success message and user data
@@ -113,14 +180,16 @@ exports.login =  catchAsync(async (req, res, next) => {
 createSendToken(user, 201, res);
 });
 
+
+
+
 exports.logout = (req, res) => {
   res.clearCookie('jwt'); // Clear the JWT cookie
   res.status(200).json({ status: 'success' });
 };
 
+
  // START HERE 
-
-
 
 // Create a new route to verify token expiration
 exports.verifyTokenExpiration = (req, res, next) => {
@@ -150,7 +219,6 @@ exports.verifyTokenExpiration = (req, res, next) => {
 
 // ENDED HERE 
 
-
 exports.restrictTo = (...roles) => {
   return (req, res, next) => {
     // roles ['admin', 'lead-guide']. role='user'
@@ -163,6 +231,8 @@ exports.restrictTo = (...roles) => {
     next();
   };
 };
+
+
 
 
 exports.protect = catchAsync(async (req, res, next) => {
@@ -206,6 +276,7 @@ if (!currentUser) {
   req.user = currentUser;
     next();
 });
+
 
 
 exports.forgotPassword = catchAsync(async (req, res, next) => {
